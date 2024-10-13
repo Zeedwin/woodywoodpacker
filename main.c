@@ -1,8 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdint.h>
-
+#include <stdint.h>/* condition */
+#include <unistd.h>
+#include <stdio.h>
+#include <string.h>
 #include <elf.h>
+#include <sys/mman.h>
 
 
 
@@ -28,38 +31,77 @@ int main()
 
     
     uint32_t ei_class = *(uint32_t *)(elf + EI_CLASS);
-    printf("ELF confirmation: %u\n", elf[0x32]);
+    if (elf[EI_MAG0] != ELFMAG0  || elf[EI_MAG1] != ELFMAG1 ||
+        elf[EI_MAG2] != ELFMAG2 || elf[EI_MAG3] != ELFMAG3)
+        {
+            printf("The file isn't a ELF compliant file\n");
+            return;
+        }
 
+        switch(elf[4]) {
+        case ELFCLASSNONE:
+            printf("Invalid class\n");
+            break;
+        case ELFCLASS32:
+            printf("32-bit objects\n");
+            break;
+        case ELFCLASS64:
+            printf("64-bit objects\n");
+            break;
+        default:
+            printf("Unknown class\n");
+    }
+    // elf 0x0 - ...
+    // ...
+    // liste des noms - 0x1000
+    // 0x1000: ""
+    // 0x1001: ".plt"
+    // ...
+    // sh_name = 1
 
-    //     switch(elf[4]) {
-    //     case ELFCLASSNONE:
-    //         printf("Invalid class\n");
-    //         break;
-    //     case ELFCLASS32:
-    //         printf("32-bit objects\n");
-    //         break;
-    //     case ELFCLASS64:
-    //         printf("64-bit objects\n");
-    //         break;
-    //     default:
-    //         printf("Unknown class\n");
-    // }
-    // // elf 0x0 - ...
-    // // ...
-    // // liste des noms - 0x1000
-    // // 0x1000: ""
-    // // 0x1001: ".plt"
-    // // ...
-    // // sh_name = 1
+    // e_shstrndx -> la section e_shstrndx c'est les noms
+    // sh_offset => le contenue la section est a l'emplacement sh_offset
+    // sh_name -> apartir des noms, je suis o l'offset sh_name
 
-    // // e_shstrndx -> la section e_shstrndx c'est les noms
-    // // sh_offset => le contenue la section est a l'emplacement sh_offset
-    // // sh_name -> apartir des noms, je suis o l'offset sh_name
+    // on recupere l'emplacement des noms
+    char *sec_names = (elf + shdr[hdr->e_shstrndx].sh_offset);
 
-    // // on recupere l'emplacement des noms
-    // char *sec_names = (elf + shdr[hdr->e_shstrndx].sh_offset);
+/* condition */
+    for (int i = 0; i < hdr->e_shnum; i++)
+    {
+        if (strcmp(sec_names + shdr[i].sh_name, ".text") == 0)
+        {
+            const char *txt_sectn = (const char *)sec_names + shdr[i].sh_name;
+            break;
+        }
+    }
 
+    // void *mapped_file = mmap(NULL, hdr->e_phnum * sizeof(Elf64_Phdr), PROT_READ | PROT_WRITE, MAP_PRIVATE, fileno(fp), 0);
+    // if (mapped_file == MAP_FAILED)
+    // {
+    //     perror("Error mapping file");
+    //     fclose(fp);
+    //     return;
+    // }    
+    
+    Elf64_Phdr *phdr = elf + hdr->e_phoff;
+    //Elf64_Shdr *text_section = &shdr[(int)text_section - hdr->e_shstrndx]; 
+    //off_t txtoff = text_section->sh_offset;
+    for (int i = 0; i < hdr->e_phnum; i++)
+    {
+        if(phdr[i].p_type == PT_LOAD && (phdr[i].p_flags & PF_X)) {
+            char *txt_start = elf + phdr[i].p_offset;
+            //size_t txt_size = phdr[i].p_filesz;
+
+            printf("Contents of .text section:\n");
+            fwrite(txt_start, 1, 10, stdout);
+            // munmap(mapped_file,hdr->e_phnum * sizeof(Elf64_Phdr));
+            //fclose(fp);
+            //return;
+        }
+    }
+     
     // for (int i = 0; i < hdr->e_shnum; i++) {
-    //     printf("section %d sh_name: %d name: %s offset: %lx\n",i, shdr[i].sh_name, sec_names + shdr[i].sh_name, shdr[i].sh_offset);
+    //     printf("name: %s offset: %lx\n" sec_names + shdr[i].sh_name, shdr[i].sh_offset);
     // }
 }
