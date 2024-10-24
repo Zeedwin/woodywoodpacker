@@ -71,6 +71,8 @@ int main()
     // on recupere l'emplacement des noms
     char *sec_names = (elf + shdr[hdr->e_shstrndx].sh_offset);
 
+    Elf64_Phdr *phdr = elf + hdr->e_phoff;
+
 /* condition */
     for (int i = 0; i < hdr->e_shnum; i++)
     {
@@ -86,10 +88,23 @@ int main()
                 ptr[y] = crypt(ptr[y], prev_byte);
                 prev_byte = tmp;
             }
+            // We iterate in the program headers and we find the section that contains our .text and give ourselves permission to write
+            for(int y = 0; y < hdr->e_phnum; y++) {
+                if(phdr[y].p_vaddr <= shdr[i].sh_addr && phdr[y].p_vaddr + phdr[y].p_memsz >= shdr[i].sh_addr) {
+                    phdr[y].p_flags |= PF_W;
+                }
+            }
             
             break;
         }
     }
+    ///Elf64_Phdr *phdr = elf + hdr->e_phoff;
+    //hdr->e_phoff = ...;
+    //hdr->e_phnum += 1;
+    //
+    //real_main = hdr->e_entry;
+
+    //hdr->e_entry = bootloader; 
 
     FILE *outputfp = fopen("couilles", "wb");
     
@@ -104,7 +119,7 @@ int main()
     //     return;
     // }    
     
-    Elf64_Phdr *phdr = elf + hdr->e_phoff;
+    
     //Elf64_Shdr *text_section = &shdr[(int)text_section - hdr->e_shstrndx]; 
     //off_t txtoff = text_section->sh_offset;
     // for (int i = 0; i < hdr->e_phnum; i++)
@@ -126,7 +141,7 @@ int main()
         if ((shdr[i].sh_flags & (SHF_ALLOC | SHF_EXECINSTR)) == (SHF_ALLOC | SHF_EXECINSTR))
         {
             printf("wow jb found :00000 \n");
+            
         }
-        
     }
 }
