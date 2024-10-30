@@ -7,6 +7,8 @@
 #include <elf.h>
 #include <sys/mman.h>
 
+extern int bootloader(void);
+
 unsigned char nazi_crypt(unsigned char byte, unsigned char prev_byte)
 {
     byte ^= prev_byte;
@@ -16,7 +18,10 @@ unsigned char nazi_crypt(unsigned char byte, unsigned char prev_byte)
 
 int main()
 {
+
+    bootloader();
     FILE *fp = fopen("a.out", "rb");
+    printf("\nlmao\n");
 
     fseek(fp, 0, SEEK_END);
     long size = ftell(fp);
@@ -85,7 +90,7 @@ int main()
             for (int y = 0; y < shdr[i].sh_size; y++)
             {
                 char tmp = ptr[y];
-                ptr[y] = crypt(ptr[y], prev_byte);
+                ptr[y] = nazi_crypt(ptr[y], prev_byte);
                 prev_byte = tmp;
             }
             // We iterate in the program headers and we find the section that contains our .text and give ourselves permission to write
@@ -110,7 +115,6 @@ int main()
     
     fwrite(elf, 1, size, outputfp);
     fclose(outputfp);
-    return;
     // void *mapped_file = mmap(NULL, hdr->e_phnum * sizeof(Elf64_Phdr), PROT_READ | PROT_WRITE, MAP_PRIVATE, fileno(fp), 0);
     // if (mapped_file == MAP_FAILED)
     // {
