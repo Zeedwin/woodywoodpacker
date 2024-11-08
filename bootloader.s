@@ -9,7 +9,6 @@ bootloader:
     mov ecx, message    ; address of message string
     mov edx, 13         ; length of message
     int 0x80           ; invoke Linux system call
-
     ; Return from function
     ret
 
